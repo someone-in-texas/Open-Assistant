@@ -16,9 +16,15 @@ jobs:
         with: { version: 11.5.1 }
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: { node-version: 22.22.0, cache: pnpm }
+      - name: Set up Firefox
+        id: setup-firefox
+        uses: browser-actions/setup-firefox@49cdbfc200e72729ff368b519201904af267e90c
+        with: { firefox-version: latest }
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:security
       - run: xvfb-run --auto-servernum pnpm smoke
+        env:
+          FIREFOX_BINARY: ${{ steps.setup-firefox.outputs.firefox-path }}
       - run: pnpm package:extension && cp artifacts/*-unsigned.zip /tmp/first.zip && pnpm package:extension && cmp /tmp/first.zip artifacts/*-unsigned.zip
       - run: pnpm audit --audit-level high
       - name: Bridge fixture compatibility

@@ -19,10 +19,17 @@ jobs:
         with: { version: 11.5.1 }
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: { node-version: 22.22.0, cache: pnpm }
+      - name: Set up Firefox
+        id: setup-firefox
+        if: runner.os == 'Linux'
+        uses: browser-actions/setup-firefox@49cdbfc200e72729ff368b519201904af267e90c
+        with: { firefox-version: latest }
       - run: pnpm install --frozen-lockfile
       - name: Smoke with virtual display
         if: runner.os == 'Linux'
         run: xvfb-run --auto-servernum pnpm smoke
+        env:
+          FIREFOX_BINARY: ${{ steps.setup-firefox.outputs.firefox-path }}
       - name: Smoke
         if: runner.os != 'Linux'
         run: pnpm smoke

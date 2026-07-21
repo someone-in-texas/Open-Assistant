@@ -50,11 +50,10 @@ function profileFirefoxPids() {
 
 async function stopProfileFirefox() {
   if (process.platform === "win32") {
-    const script = `$p=${JSON.stringify(profile)}; Get-CimInstance Win32_Process | Where-Object { $_.Name -match 'firefox' -and $_.CommandLine -like ('*' + $p + '*') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`;
-    const encoded = Buffer.from(script, "utf16le").toString("base64");
     try {
-      execFileSync("powershell.exe", ["-NoProfile", "-EncodedCommand", encoded]);
+      execFileSync("taskkill.exe", ["/F", "/T", "/IM", "firefox.exe"], { stdio: "ignore" });
     } catch {}
+    await delay(500);
     return;
   }
   for (const pid of profileFirefoxPids()) {
@@ -92,7 +91,7 @@ try {
   failure = error;
 } finally {
   await stopProfileFirefox();
-  await rm(profile, { recursive: true, force: true });
+  await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 250 });
 }
 
 if (failure) {
