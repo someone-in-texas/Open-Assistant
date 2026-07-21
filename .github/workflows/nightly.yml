@@ -18,7 +18,7 @@ jobs:
         with: { node-version: 22.22.0, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:security
-      - run: pnpm smoke
+      - run: xvfb-run --auto-servernum pnpm smoke
       - run: pnpm package:extension && cp artifacts/*-unsigned.zip /tmp/first.zip && pnpm package:extension && cmp /tmp/first.zip artifacts/*-unsigned.zip
       - run: pnpm audit --audit-level high
       - name: Bridge fixture compatibility
