@@ -53,7 +53,7 @@ app.addHook("onSend", async (request, reply, payload) => {
 
 app.get("/v1/health", async () => ({ status: "ok", version: "0.1.0" }));
 
-app.get("/v1/me", standardRateLimit, async (request) => {
+app.get("/v1/me", { config: { rateLimit: standardRateLimit } }, async (request) => {
   const identity = await authenticate(request);
   return {
     subject: identity.subject,
@@ -62,22 +62,26 @@ app.get("/v1/me", standardRateLimit, async (request) => {
   };
 });
 
-app.post("/v1/sessions", mutationRateLimit, async (request, reply) => {
+app.post("/v1/sessions", { config: { rateLimit: mutationRateLimit } }, async (request, reply) => {
   const identity = await authenticate(request);
   const sessionId = crypto.randomUUID();
   sessions.set(sessionId, { owner: identity.subject, createdAt: Date.now() });
   return reply.code(201).send({ sessionId, createdAt: new Date().toISOString() });
 });
 
-app.delete("/v1/sessions/:id", mutationRateLimit, async (request, reply) => {
-  const identity = await authenticate(request);
-  const id = z.uuid().parse((request.params as { id?: unknown }).id);
-  const session = sessions.get(id);
-  if (!session || session.owner !== identity.subject)
-    return reply.code(404).send({ error: "Session not found." });
-  sessions.delete(id);
-  return reply.code(204).send();
-});
+app.delete(
+  "/v1/sessions/:id",
+  { config: { rateLimit: mutationRateLimit } },
+  async (request, reply) => {
+    const identity = await authenticate(request);
+    const id = z.uuid().parse((request.params as { id?: unknown }).id);
+    const session = sessions.get(id);
+    if (!session || session.owner !== identity.subject)
+      return reply.code(404).send({ error: "Session not found." });
+    sessions.delete(id);
+    return reply.code(204).send();
+  },
+);
 
 function modelInput(body: ResponseRequest): OpenAI.Responses.ResponseInput {
   const serialized = serializeContextAsData(body.context);
@@ -105,7 +109,7 @@ async function textResponse(body: ResponseRequest) {
   });
 }
 
-app.post("/v1/responses", expensiveRateLimit, async (request, reply) => {
+app.post("/v1/responses", { config: { rateLimit: expensiveRateLimit } }, async (request, reply) => {
   await authenticate(request);
   const body = responseRequestSchema.parse(request.body);
   const key = request.headers["idempotency-key"];
@@ -131,111 +135,123 @@ function sendEvent(reply: FastifyReply, event: StreamEvent): void {
   reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
 }
 
-app.post("/v1/responses/stream", expensiveRateLimit, async (request, reply) => {
-  await authenticate(request);
-  const body = responseRequestSchema.parse(request.body);
-  reply.hijack();
-  reply.raw.writeHead(200, {
-    "content-type": "text/event-stream; charset=utf-8",
-    "cache-control": "no-store",
-    connection: "keep-alive",
-    "x-request-id": request.id,
-  });
-  sendEvent(reply, { type: "start", requestId: request.id });
-  const heartbeat = setInterval(() => reply.raw.write(": heartbeat\n\n"), 15_000);
-  try {
-    if (body.mode === "edit") {
-      const response = await openai.responses.create({
-        model: config.OPEN_ASSISTANT_CHAT_MODEL,
-        input: [
-          ...modelInput(body),
-          {
-            role: "developer",
-            content: [
-              {
-                type: "input_text",
-                text: "Return an edit proposal whose originalText exactly equals the selected source quote. Preserve facts, numbers, URLs, dates, email addresses, names, and negation unless the user explicitly requests changing them.",
-              },
-            ],
-          },
-        ],
-        text: {
-          format: {
-            type: "json_schema",
-            name: "edit_proposal",
-            strict: true,
-            schema: {
-              type: "object",
-              additionalProperties: false,
-              required: [
-                "schemaVersion",
-                "proposalId",
-                "originalText",
-                "replacementText",
-                "warnings",
+app.post(
+  "/v1/responses/stream",
+  { config: { rateLimit: expensiveRateLimit } },
+  async (request, reply) => {
+    await authenticate(request);
+    const body = responseRequestSchema.parse(request.body);
+    reply.hijack();
+    reply.raw.writeHead(200, {
+      "content-type": "text/event-stream; charset=utf-8",
+      "cache-control": "no-store",
+      connection: "keep-alive",
+      "x-request-id": request.id,
+    });
+    sendEvent(reply, { type: "start", requestId: request.id });
+    const heartbeat = setInterval(() => reply.raw.write(": heartbeat\n\n"), 15_000);
+    try {
+      if (body.mode === "edit") {
+        const response = await openai.responses.create({
+          model: config.OPEN_ASSISTANT_CHAT_MODEL,
+          input: [
+            ...modelInput(body),
+            {
+              role: "developer",
+              content: [
+                {
+                  type: "input_text",
+                  text: "Return an edit proposal whose originalText exactly equals the selected source quote. Preserve facts, numbers, URLs, dates, email addresses, names, and negation unless the user explicitly requests changing them.",
+                },
               ],
-              properties: {
-                schemaVersion: { type: "integer", const: 1 },
-                proposalId: { type: "string", format: "uuid" },
-                originalText: { type: "string" },
-                replacementText: { type: "string" },
-                explanation: { type: "string" },
-                warnings: { type: "array", items: { type: "string" } },
+            },
+          ],
+          text: {
+            format: {
+              type: "json_schema",
+              name: "edit_proposal",
+              strict: true,
+              schema: {
+                type: "object",
+                additionalProperties: false,
+                required: [
+                  "schemaVersion",
+                  "proposalId",
+                  "originalText",
+                  "replacementText",
+                  "warnings",
+                ],
+                properties: {
+                  schemaVersion: { type: "integer", const: 1 },
+                  proposalId: { type: "string", format: "uuid" },
+                  originalText: { type: "string" },
+                  replacementText: { type: "string" },
+                  explanation: { type: "string" },
+                  warnings: { type: "array", items: { type: "string" } },
+                },
               },
             },
           },
-        },
-        max_output_tokens: 4_000,
-        store: false,
-        safety_identifier: body.sessionId,
-      });
+          max_output_tokens: 4_000,
+          store: false,
+          safety_identifier: body.sessionId,
+        });
+        sendEvent(reply, {
+          type: "edit",
+          proposal: editProposalSchema.parse(JSON.parse(response.output_text)),
+        });
+      } else {
+        const stream = await openai.responses.create({
+          model: config.OPEN_ASSISTANT_CHAT_MODEL,
+          input: modelInput(body),
+          max_output_tokens: 4_000,
+          store: false,
+          stream: true,
+          safety_identifier: body.sessionId,
+        });
+        for await (const event of stream) {
+          if (request.raw.destroyed) break;
+          if (event.type === "response.output_text.delta")
+            sendEvent(reply, { type: "delta", text: event.delta });
+        }
+        for (const source of body.context.sources) {
+          const chunk = source.chunks[0];
+          if (chunk)
+            sendEvent(reply, {
+              type: "citation",
+              sourceId: source.sourceId,
+              chunkId: chunk.chunkId,
+            });
+        }
+      }
+      sendEvent(reply, { type: "done" });
+    } catch (error) {
       sendEvent(reply, {
-        type: "edit",
-        proposal: editProposalSchema.parse(JSON.parse(response.output_text)),
+        type: "error",
+        code: error instanceof OpenAI.APIError && error.status === 429 ? "quota" : "model",
+        message: "The model request could not be completed.",
+        retryable: true,
       });
-    } else {
-      const stream = await openai.responses.create({
-        model: config.OPEN_ASSISTANT_CHAT_MODEL,
-        input: modelInput(body),
-        max_output_tokens: 4_000,
-        store: false,
-        stream: true,
-        safety_identifier: body.sessionId,
-      });
-      for await (const event of stream) {
-        if (request.raw.destroyed) break;
-        if (event.type === "response.output_text.delta")
-          sendEvent(reply, { type: "delta", text: event.delta });
-      }
-      for (const source of body.context.sources) {
-        const chunk = source.chunks[0];
-        if (chunk)
-          sendEvent(reply, { type: "citation", sourceId: source.sourceId, chunkId: chunk.chunkId });
-      }
+    } finally {
+      clearInterval(heartbeat);
+      reply.raw.end();
     }
-    sendEvent(reply, { type: "done" });
-  } catch (error) {
-    sendEvent(reply, {
-      type: "error",
-      code: error instanceof OpenAI.APIError && error.status === 429 ? "quota" : "model",
-      message: "The model request could not be completed.",
-      retryable: true,
+  },
+);
+
+app.post(
+  "/v1/agent/turn",
+  { config: { rateLimit: expensiveRateLimit } },
+  async (request, reply) => {
+    await authenticate(request);
+    return reply.code(403).send({
+      code: "policy",
+      error: "Interactive agent mode is disabled until the independent safety release gate passes.",
     });
-  } finally {
-    clearInterval(heartbeat);
-    reply.raw.end();
-  }
-});
+  },
+);
 
-app.post("/v1/agent/turn", expensiveRateLimit, async (request, reply) => {
-  await authenticate(request);
-  return reply.code(403).send({
-    code: "policy",
-    error: "Interactive agent mode is disabled until the independent safety release gate passes.",
-  });
-});
-
-app.post("/v1/feedback", mutationRateLimit, async (request, reply) => {
+app.post("/v1/feedback", { config: { rateLimit: mutationRateLimit } }, async (request, reply) => {
   await authenticate(request);
   z.object({
     requestId: z.string().max(128),
@@ -247,11 +263,16 @@ app.post("/v1/feedback", mutationRateLimit, async (request, reply) => {
   return reply.code(202).send({ accepted: true, retained: false });
 });
 
-app.delete("/v1/account/data", expensiveRateLimit, async (request, reply) => {
-  const identity = await authenticate(request);
-  for (const [id, session] of sessions) if (session.owner === identity.subject) sessions.delete(id);
-  return reply.code(204).send();
-});
+app.delete(
+  "/v1/account/data",
+  { config: { rateLimit: expensiveRateLimit } },
+  async (request, reply) => {
+    const identity = await authenticate(request);
+    for (const [id, session] of sessions)
+      if (session.owner === identity.subject) sessions.delete(id);
+    return reply.code(204).send();
+  },
+);
 
 app.setErrorHandler((error: unknown, _request, reply) => {
   const status =

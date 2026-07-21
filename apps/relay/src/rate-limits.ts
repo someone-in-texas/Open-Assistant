@@ -1,16 +1,5 @@
 const WINDOW = "1 minute";
 
-function routeRateLimit(max: number) {
-  return {
-    config: {
-      rateLimit: {
-        max,
-        timeWindow: WINDOW,
-      },
-    },
-  };
-}
-
-export const standardRateLimit = routeRateLimit(60);
-export const mutationRateLimit = routeRateLimit(30);
-export const expensiveRateLimit = routeRateLimit(10);
+export const standardRateLimit = { max: 60, timeWindow: WINDOW };
+export const mutationRateLimit = { max: 30, timeWindow: WINDOW };
+export const expensiveRateLimit = { max: 10, timeWindow: WINDOW };
