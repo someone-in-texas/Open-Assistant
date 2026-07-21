@@ -14,7 +14,7 @@ jobs:
       OPEN_ASSISTANT_HOSTED_ORIGIN: ${{ vars.OPEN_ASSISTANT_HOSTED_ORIGIN }}
       OPEN_ASSISTANT_OIDC_ORIGIN: ${{ vars.OPEN_ASSISTANT_OIDC_ORIGIN }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with: { fetch-depth: 0 }
       - name: Verify annotated SemVer tag on main
         run: |
