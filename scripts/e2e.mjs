@@ -74,7 +74,7 @@ let failure;
 try {
   const launch = await Promise.race([
     exited.then((result) => ({ type: "exit", result })),
-    delay(8_000).then(() => ({ type: "ready" })),
+    delay(20_000).then(() => ({ type: "ready" })),
   ]);
   if (launch.type === "exit") {
     failure = new Error(
