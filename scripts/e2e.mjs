@@ -1,6 +1,7 @@
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { spawnPnpm } from "./lib/pnpm.mjs";
 
 const profile = path.resolve("test-results/firefox-profile");
 const results = path.resolve("test-results/smoke");
@@ -23,7 +24,7 @@ const args = [
 ];
 if (process.env.FIREFOX_BINARY) args.push("--firefox", process.env.FIREFOX_BINARY);
 
-const child = spawn("pnpm", args, { stdio: ["ignore", "pipe", "pipe"] });
+const child = spawnPnpm(args, { stdio: ["ignore", "pipe", "pipe"] });
 let output = "";
 for (const stream of [child.stdout, child.stderr]) {
   stream.on("data", (chunk) => {
@@ -49,11 +50,10 @@ function profileFirefoxPids() {
 
 async function stopProfileFirefox() {
   if (process.platform === "win32") {
-    const script = `$p=${JSON.stringify(profile)}; Get-CimInstance Win32_Process | Where-Object { $_.Name -match 'firefox' -and $_.CommandLine -like ('*' + $p + '*') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`;
-    const encoded = Buffer.from(script, "utf16le").toString("base64");
     try {
-      execFileSync("powershell.exe", ["-NoProfile", "-EncodedCommand", encoded]);
+      execFileSync("taskkill.exe", ["/F", "/T", "/IM", "firefox.exe"], { stdio: "ignore" });
     } catch {}
+    await delay(500);
     return;
   }
   for (const pid of profileFirefoxPids()) {
@@ -73,7 +73,7 @@ let failure;
 try {
   const launch = await Promise.race([
     exited.then((result) => ({ type: "exit", result })),
-    delay(8_000).then(() => ({ type: "ready" })),
+    delay(20_000).then(() => ({ type: "ready" })),
   ]);
   if (launch.type === "exit") {
     failure = new Error(
@@ -91,7 +91,7 @@ try {
   failure = error;
 } finally {
   await stopProfileFirefox();
-  await rm(profile, { recursive: true, force: true });
+  await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 250 });
 }
 
 if (failure) {

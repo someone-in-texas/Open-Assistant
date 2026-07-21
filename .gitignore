@@ -12,3 +12,4 @@ apps/extension/.web-ext-artifacts/
 apps/extension/web-ext-artifacts/
 test-results/
 geckodriver.log
+*.tsbuildinfo

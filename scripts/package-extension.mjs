@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdir, readdir, rename, rm, stat, utimes } from "node:fs/promises";
 import path from "node:path";
+import { execPnpmSync } from "./lib/pnpm.mjs";
 
 const version = JSON.parse(
   await (await import("node:fs/promises")).readFile("package.json", "utf8"),
@@ -8,7 +9,7 @@ const version = JSON.parse(
 const output = path.resolve("artifacts");
 await mkdir(output, { recursive: true });
 await rm(path.join(output, `open-assistant-firefox-${version}-unsigned.zip`), { force: true });
-execFileSync("pnpm", ["build:extension:production"], { stdio: "inherit" });
+execPnpmSync(["build:extension:production"], { stdio: "inherit" });
 
 async function files(directory, prefix = "") {
   const entries = await readdir(directory);

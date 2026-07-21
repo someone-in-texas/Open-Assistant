@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execPnpmSync } from "./lib/pnpm.mjs";
 
 for (const args of [
   ["check:versions"],
@@ -11,4 +11,4 @@ for (const args of [
   ["lint:webext"],
   ["package:extension"],
 ])
-  execFileSync("pnpm", args, { stdio: "inherit" });
+  execPnpmSync(args, { stdio: "inherit" });

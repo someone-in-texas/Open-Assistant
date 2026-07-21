@@ -1,9 +1,9 @@
-import { execFileSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { execPnpmSync } from "./lib/pnpm.mjs";
 
 const workspaces = JSON.parse(
-  execFileSync("pnpm", ["list", "-r", "--json", "--depth", "Infinity"], {
+  execPnpmSync(["list", "-r", "--json", "--depth", "Infinity"], {
     encoding: "utf8",
     maxBuffer: 50 * 1024 * 1024,
   }),

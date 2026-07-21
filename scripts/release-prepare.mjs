@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { readFile, writeFile } from "node:fs/promises";
+import { execPnpmSync } from "./lib/pnpm.mjs";
 
 const marker = process.argv.indexOf("--version");
 const version = marker >= 0 ? process.argv[marker + 1] : undefined;
@@ -48,6 +49,6 @@ await writeFile(
   "docs/amo-listing/release-notes.md",
   `# ${version}\n\nSee [CHANGELOG.md](../../../CHANGELOG.md) for the curated changes in this release.\n`,
 );
-execFileSync("pnpm", ["install", "--lockfile-only"], { stdio: "inherit" });
-execFileSync("pnpm", ["release:verify"], { stdio: "inherit" });
+execPnpmSync(["install", "--lockfile-only"], { stdio: "inherit" });
+execPnpmSync(["release:verify"], { stdio: "inherit" });
 console.log("Release files are ready for a reviewed release PR. No tag or push was created.");
