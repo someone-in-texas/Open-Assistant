@@ -1,11 +1,12 @@
 import { spawn, execFileSync } from "node:child_process";
 import { mkdir, rm } from "node:fs/promises";
 import path from "node:path";
+import { execPnpmSync } from "./lib/pnpm.mjs";
 
 const results = path.resolve("test-results/smoke");
 await rm(results, { recursive: true, force: true });
 await mkdir(results, { recursive: true });
-execFileSync("pnpm", ["build"], { stdio: "inherit" });
+execPnpmSync(["build"], { stdio: "inherit" });
 execFileSync(process.execPath, ["scripts/webext-lint.mjs"], { stdio: "inherit" });
 const mock = spawn(process.execPath, ["apps/mock-relay/dist/index.js"], {
   stdio: ["ignore", "pipe", "pipe"],
@@ -35,7 +36,7 @@ try {
   const article = await ready("http://127.0.0.1:4173/article.html");
   if (!(await article.text()).includes("explicit context"))
     throw new Error("Fixture article was unavailable.");
-  execFileSync("pnpm", ["test:integration"], { stdio: "inherit" });
+  execPnpmSync(["test:integration"], { stdio: "inherit" });
   execFileSync("node", ["scripts/e2e.mjs"], { stdio: "inherit" });
   console.log("Smoke checks passed, including temporary-profile Firefox installation.");
 } catch (error) {

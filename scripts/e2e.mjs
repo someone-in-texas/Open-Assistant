@@ -1,6 +1,7 @@
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { spawnPnpm } from "./lib/pnpm.mjs";
 
 const profile = path.resolve("test-results/firefox-profile");
 const results = path.resolve("test-results/smoke");
@@ -23,7 +24,7 @@ const args = [
 ];
 if (process.env.FIREFOX_BINARY) args.push("--firefox", process.env.FIREFOX_BINARY);
 
-const child = spawn("pnpm", args, { stdio: ["ignore", "pipe", "pipe"] });
+const child = spawnPnpm(args, { stdio: ["ignore", "pipe", "pipe"] });
 let output = "";
 for (const stream of [child.stdout, child.stderr]) {
   stream.on("data", (chunk) => {

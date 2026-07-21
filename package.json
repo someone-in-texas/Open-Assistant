@@ -11,7 +11,7 @@
   },
   "scripts": {
     "build": "pnpm build:packages && pnpm build:extension && pnpm build:relay",
-    "build:packages": "tsc -b packages/*",
+    "build:packages": "tsc -b packages/* --force",
     "build:extension": "pnpm --filter @open-assistant/extension build",
     "build:extension:production": "pnpm --filter @open-assistant/extension build:production",
     "build:relay": "pnpm --filter @open-assistant/relay build && pnpm --filter @open-assistant/mock-relay build && pnpm --filter @open-assistant/fixture-server build",
@@ -24,7 +24,7 @@
     "lint:webext": "pnpm build:extension:production && node scripts/webext-lint.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc -b --pretty false",
+    "typecheck": "tsc -b --pretty false --force",
     "test": "vitest run --coverage",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
