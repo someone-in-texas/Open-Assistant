@@ -6,7 +6,7 @@ license = "MPL-2.0"
 publish = false
 
 [dependencies]
-keyring = "=3.6.3"
+keyring = "=4.1.5"
 reqwest = { version = "=0.12.28", default-features = false, features = ["json", "rustls-tls"] }
 secrecy = "=0.10.3"
 serde = { version = "=1.0.229", features = ["derive"] }
