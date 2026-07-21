@@ -6,6 +6,10 @@ updates:
     groups:
       development-dependencies:
         dependency-type: development
+    ignore:
+      # Remove when typescript-eslint supports TypeScript 7.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: cargo
     directory: /apps/native-host
     schedule: { interval: weekly }
