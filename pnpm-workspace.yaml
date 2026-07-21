@@ -5,6 +5,9 @@ packages:
 allowBuilds:
   esbuild: true
 strictPeerDependencies: true
+overrides:
+  adm-zip: 0.6.0
+  shell-quote: 1.10.0
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
   - "@open-assistant/*"
