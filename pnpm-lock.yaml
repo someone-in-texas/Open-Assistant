@@ -99,6 +99,9 @@ importers:
 
   apps/fixture-server:
     dependencies:
+      '@fastify/rate-limit':
+        specifier: 11.1.0
+        version: 11.1.0
       fastify:
         specifier: 5.10.0
         version: 5.10.0

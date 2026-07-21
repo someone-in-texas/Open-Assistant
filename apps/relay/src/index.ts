@@ -13,6 +13,7 @@ import OpenAI from "openai";
 import { z } from "zod";
 import { createAuthenticator } from "./auth.js";
 import { loadConfig } from "./config.js";
+import { expensiveRateLimit, mutationRateLimit, standardRateLimit } from "./rate-limits.js";
 
 const config = loadConfig();
 const app = Fastify({
@@ -52,7 +53,7 @@ app.addHook("onSend", async (request, reply, payload) => {
 
 app.get("/v1/health", async () => ({ status: "ok", version: "0.1.0" }));
 
-app.get("/v1/me", async (request) => {
+app.get("/v1/me", standardRateLimit, async (request) => {
   const identity = await authenticate(request);
   return {
     subject: identity.subject,
@@ -61,14 +62,14 @@ app.get("/v1/me", async (request) => {
   };
 });
 
-app.post("/v1/sessions", async (request, reply) => {
+app.post("/v1/sessions", mutationRateLimit, async (request, reply) => {
   const identity = await authenticate(request);
   const sessionId = crypto.randomUUID();
   sessions.set(sessionId, { owner: identity.subject, createdAt: Date.now() });
   return reply.code(201).send({ sessionId, createdAt: new Date().toISOString() });
 });
 
-app.delete("/v1/sessions/:id", async (request, reply) => {
+app.delete("/v1/sessions/:id", mutationRateLimit, async (request, reply) => {
   const identity = await authenticate(request);
   const id = z.uuid().parse((request.params as { id?: unknown }).id);
   const session = sessions.get(id);
@@ -104,7 +105,7 @@ async function textResponse(body: ResponseRequest) {
   });
 }
 
-app.post("/v1/responses", async (request, reply) => {
+app.post("/v1/responses", expensiveRateLimit, async (request, reply) => {
   await authenticate(request);
   const body = responseRequestSchema.parse(request.body);
   const key = request.headers["idempotency-key"];
@@ -130,7 +131,7 @@ function sendEvent(reply: FastifyReply, event: StreamEvent): void {
   reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
 }
 
-app.post("/v1/responses/stream", async (request, reply) => {
+app.post("/v1/responses/stream", expensiveRateLimit, async (request, reply) => {
   await authenticate(request);
   const body = responseRequestSchema.parse(request.body);
   reply.hijack();
@@ -226,7 +227,7 @@ app.post("/v1/responses/stream", async (request, reply) => {
   }
 });
 
-app.post("/v1/agent/turn", async (request, reply) => {
+app.post("/v1/agent/turn", expensiveRateLimit, async (request, reply) => {
   await authenticate(request);
   return reply.code(403).send({
     code: "policy",
@@ -234,7 +235,7 @@ app.post("/v1/agent/turn", async (request, reply) => {
   });
 });
 
-app.post("/v1/feedback", async (request, reply) => {
+app.post("/v1/feedback", mutationRateLimit, async (request, reply) => {
   await authenticate(request);
   z.object({
     requestId: z.string().max(128),
@@ -246,7 +247,7 @@ app.post("/v1/feedback", async (request, reply) => {
   return reply.code(202).send({ accepted: true, retained: false });
 });
 
-app.delete("/v1/account/data", async (request, reply) => {
+app.delete("/v1/account/data", expensiveRateLimit, async (request, reply) => {
   const identity = await authenticate(request);
   for (const [id, session] of sessions) if (session.owner === identity.subject) sessions.delete(id);
   return reply.code(204).send();
