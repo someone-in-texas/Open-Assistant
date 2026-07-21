@@ -18,7 +18,7 @@ jobs:
         with: { node-version: 22.22.0, cache: pnpm }
       - name: Set up Firefox
         id: setup-firefox
-        uses: browser-actions/setup-firefox@49cdbfc200e72729ff368b519201904af267e90c
+        uses: browser-actions/setup-firefox@0bc507ddf224827e3b1af68e014d5e42ab93e795
         with: { firefox-version: latest }
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:security
