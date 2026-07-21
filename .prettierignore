@@ -1,0 +1,6 @@
+dist
+coverage
+target
+artifacts
+pnpm-lock.yaml
+SPEC.md

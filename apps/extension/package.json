@@ -1,0 +1,20 @@
+{
+  "name": "@open-assistant/extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:production": "node scripts/build.mjs --mode=production",
+    "dev": "node scripts/build.mjs --watch"
+  },
+  "dependencies": {
+    "@open-assistant/editor": "workspace:*",
+    "@open-assistant/extraction": "workspace:*",
+    "@open-assistant/prompt-security": "workspace:*",
+    "@open-assistant/protocol": "workspace:*",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "zod": "4.4.3"
+  }
+}

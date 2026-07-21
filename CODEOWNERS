@@ -1,0 +1,7 @@
+* @maintainers
+
+/apps/extension/src/content/ @security-reviewers
+/apps/extension/src/background/ @security-reviewers
+/apps/relay/src/ @security-reviewers
+/packages/agent-policy/ @security-reviewers
+/.github/workflows/ @release-maintainers

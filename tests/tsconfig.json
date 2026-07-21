@@ -1,0 +1,19 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": "..",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "composite": true,
+    "types": ["vitest/globals"],
+    "paths": {
+      "@open-assistant/protocol": ["packages/protocol/src/index.ts"],
+      "@open-assistant/extraction": ["packages/extraction/src/index.ts"],
+      "@open-assistant/editor": ["packages/editor/src/index.ts"],
+      "@open-assistant/prompt-security": ["packages/prompt-security/src/index.ts"],
+      "@open-assistant/agent-policy": ["packages/agent-policy/src/index.ts"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"]
+}

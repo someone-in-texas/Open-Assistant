@@ -1,0 +1,25 @@
+name: Nightly
+on:
+  schedule:
+    - cron: "23 7 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  adversarial-and-reproducible:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: { fetch-depth: 0 }
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with: { version: 11.5.1 }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: 22.22.0, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:security
+      - run: pnpm smoke
+      - run: pnpm package:extension && cp artifacts/*-unsigned.zip /tmp/first.zip && pnpm package:extension && cmp /tmp/first.zip artifacts/*-unsigned.zip
+      - run: pnpm audit --audit-level high
+      - name: Bridge fixture compatibility
+        run: pnpm test:integration -- --testNamePattern="context boundary"

@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+artifacts/
+target/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+apps/extension/.web-ext-artifacts/
+apps/extension/web-ext-artifacts/
+test-results/
+geckodriver.log

@@ -1,0 +1,13 @@
+{
+  "name": "@open-assistant/agent-policy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@open-assistant/protocol": "workspace:*",
+    "@open-assistant/prompt-security": "workspace:*"
+  }
+}

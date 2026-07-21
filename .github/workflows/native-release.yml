@@ -1,0 +1,29 @@
+name: Native release
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4
+        with: { toolchain: stable }
+      - run: cargo test --locked --manifest-path apps/native-host/Cargo.toml
+      - run: cargo build --locked --release --manifest-path apps/native-host/Cargo.toml
+      - name: Block unsigned tag publication
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          echo "Native publication is blocked until Authenticode and Developer ID notarization are configured in a protected environment."
+          exit 1
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-unsigned-${{ runner.os }}
+          path: target/release/open-assistant-native-host*
+          retention-days: 7

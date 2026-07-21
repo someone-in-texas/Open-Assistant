@@ -1,0 +1,238 @@
+:root {
+  color-scheme: light dark;
+  font: message-box;
+  --surface: Canvas;
+  --surface-raised: color-mix(in srgb, Canvas 94%, CanvasText 6%);
+  --text: CanvasText;
+  --muted: color-mix(in srgb, CanvasText 65%, Canvas 35%);
+  --border: color-mix(in srgb, CanvasText 20%, Canvas 80%);
+  --accent: #5b4fff;
+  --accent-text: white;
+  --danger: #b42318;
+  --radius: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 280px;
+  color: var(--text);
+  background: var(--surface);
+}
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+button,
+.button {
+  min-height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 11px;
+  color: var(--text);
+  background: var(--surface-raised);
+  cursor: pointer;
+}
+button:hover {
+  border-color: var(--accent);
+}
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 2px;
+}
+button.primary {
+  color: var(--accent-text);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+button.danger {
+  color: var(--danger);
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.app-header h1 {
+  margin: 0;
+  font-size: 1rem;
+}
+.content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  overflow: auto;
+}
+.context-list,
+.toolbar,
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-raised);
+}
+.chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chip button {
+  min-height: 24px;
+  padding: 0 5px;
+  border: 0;
+}
+.messages {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+}
+.message {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.message.user {
+  align-self: flex-end;
+  max-width: 90%;
+  background: var(--surface-raised);
+}
+.message.assistant {
+  max-width: 100%;
+}
+.message pre {
+  overflow: auto;
+  padding: 10px;
+  border-radius: 6px;
+  background: color-mix(in srgb, CanvasText 8%, Canvas 92%);
+}
+.message img {
+  display: none;
+}
+.status {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.warning {
+  padding: 9px;
+  border-left: 4px solid #d97706;
+  background: color-mix(in srgb, #d97706 12%, Canvas 88%);
+}
+.error {
+  color: var(--danger);
+}
+.composer {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.composer textarea {
+  width: 100%;
+  min-height: 76px;
+  resize: vertical;
+  padding: 9px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.wide-page #root {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+.settings-grid {
+  display: grid;
+  gap: 18px;
+}
+.settings-grid label {
+  display: grid;
+  gap: 6px;
+}
+.settings-grid input,
+.settings-grid select {
+  width: 100%;
+  padding: 8px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.proposal {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.proposal del {
+  color: #b42318;
+}
+.proposal ins {
+  color: #067647;
+  text-decoration: none;
+}
+dialog {
+  max-width: min(520px, 95vw);
+  max-height: 85vh;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}
+@media (forced-colors: active) {
+  button.primary {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+}

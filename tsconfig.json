@@ -1,0 +1,14 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/protocol" },
+    { "path": "packages/extraction" },
+    { "path": "packages/editor" },
+    { "path": "packages/agent-policy" },
+    { "path": "packages/prompt-security" },
+    { "path": "apps/extension" },
+    { "path": "apps/relay" },
+    { "path": "apps/mock-relay" },
+    { "path": "apps/fixture-server" }
+  ]
+}

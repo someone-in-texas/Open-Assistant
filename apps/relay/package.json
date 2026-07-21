@@ -1,0 +1,22 @@
+{
+  "name": "@open-assistant/relay",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node22 --outfile=dist/index.js --packages=external",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@fastify/cors": "11.3.0",
+    "@fastify/helmet": "13.1.0",
+    "@fastify/rate-limit": "11.1.0",
+    "@open-assistant/prompt-security": "workspace:*",
+    "@open-assistant/protocol": "workspace:*",
+    "fastify": "5.10.0",
+    "jose": "6.2.3",
+    "openai": "6.48.0",
+    "zod": "4.4.3"
+  }
+}

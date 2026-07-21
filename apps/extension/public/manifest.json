@@ -1,0 +1,73 @@
+{
+  "manifest_version": 3,
+  "name": "__MSG_extensionName__",
+  "version": "0.1.0",
+  "description": "__MSG_extensionDescription__",
+  "default_locale": "en",
+  "permissions": ["activeTab", "contextMenus", "storage", "tabs", "scripting", "identity"],
+  "optional_permissions": ["clipboardWrite", "nativeMessaging", "notifications"],
+  "optional_host_permissions": ["http://*/*", "https://*/*", "file:///*"],
+  "background": {
+    "scripts": ["background.js"],
+    "service_worker": "background.js",
+    "preferred_environment": ["document", "service_worker"],
+    "type": "module"
+  },
+  "action": {
+    "default_title": "__MSG_openAssistant__",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "64": "icons/icon-64.png",
+    "96": "icons/icon-96.png",
+    "128": "icons/icon-128.png"
+  },
+  "sidebar_action": {
+    "default_title": "__MSG_extensionName__",
+    "default_panel": "sidebar/index.html",
+    "default_icon": "icons/icon-32.png",
+    "open_at_install": false
+  },
+  "options_ui": {
+    "page": "options/index.html",
+    "open_in_tab": true
+  },
+  "commands": {
+    "_execute_sidebar_action": {
+      "suggested_key": { "default": "Alt+Shift+A", "mac": "MacCtrl+Shift+A" }
+    },
+    "ask-selection": {
+      "suggested_key": { "default": "Alt+Shift+S", "mac": "MacCtrl+Shift+S" },
+      "description": "__MSG_askSelection__"
+    },
+    "stop-agent": {
+      "suggested_key": { "default": "Alt+Shift+X", "mac": "MacCtrl+Shift+X" },
+      "description": "__MSG_stopAgent__"
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self' http://127.0.0.1:8787 https://assistant.example.invalid https://identity.example.invalid"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "open-assistant@example.org",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": [
+          "websiteContent",
+          "browsingActivity",
+          "personalCommunications",
+          "authenticationInfo"
+        ],
+        "optional": ["websiteActivity", "technicalAndInteraction"]
+      }
+    },
+    "gecko_android": { "strict_min_version": "142.0" }
+  }
+}

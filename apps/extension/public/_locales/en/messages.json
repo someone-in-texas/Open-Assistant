@@ -1,0 +1,17 @@
+{
+  "extensionName": { "message": "Open Assistant for Firefox" },
+  "extensionDescription": {
+    "message": "Ask questions about approved page context and apply reviewed writing edits."
+  },
+  "openAssistant": { "message": "Open Assistant" },
+  "askSelection": { "message": "Ask about selected text" },
+  "stopAgent": { "message": "Stop the active tab agent" },
+  "contextMenuParent": { "message": "Ask Assistant" },
+  "askAboutSelection": { "message": "Ask about selection" },
+  "explainSelection": { "message": "Explain" },
+  "summarizeSelection": { "message": "Summarize" },
+  "improveSelection": { "message": "Improve phrasing" },
+  "conciseSelection": { "message": "Make more concise" },
+  "professionalSelection": { "message": "Make more professional" },
+  "customSelection": { "message": "Custom instruction" }
+}

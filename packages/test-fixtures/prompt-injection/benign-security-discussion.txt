@@ -1,0 +1,1 @@
+Security articles often quote phrases such as "ignore previous instructions" while explaining prompt injection. Quoted discussion alone must not grant any capability.

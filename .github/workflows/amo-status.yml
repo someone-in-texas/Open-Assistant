@@ -1,0 +1,25 @@
+name: AMO status
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to update
+        required: true
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Verify signed AMO artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir signed-release
+          gh release download "${{ inputs.tag }}" --pattern '*.xpi' --dir signed-release
+          signed=(signed-release/*.xpi)
+          test "${#signed[@]}" -eq 1
+          unzip -t "${signed[0]}"
+          gh release edit "${{ inputs.tag }}" --draft=false

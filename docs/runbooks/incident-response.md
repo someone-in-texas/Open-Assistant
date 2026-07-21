@@ -1,0 +1,3 @@
+# Incident response runbook
+
+Triage severity and affected versions without collecting user content. Revoke compromised relay/OIDC/OpenAI/AMO/signing credentials, disable affected server features, and use signed inert configuration only to disable shipped agent/bridge functionality. Preserve content-free audit evidence, notify maintainers/security contact, prepare a higher-version emergency patch, verify reproducible artifacts, submit to AMO, deprecate affected releases, and publish a plain-language advisory with scope, mitigations, rotation/deletion guidance, and timeline. Conduct a blameless review and add regression tests.

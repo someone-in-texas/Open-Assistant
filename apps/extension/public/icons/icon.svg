@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Open Assistant compass spark">
+  <defs>
+    <linearGradient id="g" x1="16" y1="16" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7468ff"/>
+      <stop offset="1" stop-color="#4434d8"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#g)"/>
+  <circle cx="64" cy="64" r="35" fill="none" stroke="white" stroke-width="7" opacity=".92"/>
+  <path d="M78 42 69 61 50 70l9-19 19-9Z" fill="white"/>
+  <circle cx="64" cy="64" r="5" fill="#4434d8"/>
+  <path d="M96 20v14M89 27h14" stroke="white" stroke-width="5" stroke-linecap="round"/>
+</svg>

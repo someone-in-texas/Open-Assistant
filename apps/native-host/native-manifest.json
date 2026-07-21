@@ -1,0 +1,7 @@
+{
+  "name": "org.mozilla.open_assistant",
+  "description": "Open Assistant BYOK credential companion",
+  "path": "__ABSOLUTE_BINARY_PATH__",
+  "type": "stdio",
+  "allowed_extensions": ["open-assistant@example.org"]
+}
