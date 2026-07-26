@@ -7,6 +7,7 @@ permissions:
   contents: read
 jobs:
   validate:
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -14,6 +15,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
       - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271
         with:
           version: 11.5.1
@@ -24,6 +27,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check:versions
       - run: pnpm check:data-inventory
+      - run: pnpm audit --audit-level high
+        if: runner.os == 'Linux'
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
@@ -39,5 +44,6 @@ jobs:
           path: |
             artifacts/
             coverage/
+            test-results/
           if-no-files-found: ignore
           retention-days: 7

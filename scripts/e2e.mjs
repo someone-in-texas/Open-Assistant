@@ -3,43 +3,22 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { spawnPnpm } from "./lib/pnpm.mjs";
 
-const profile = path.resolve("test-results/firefox-profile");
 const results = path.resolve("test-results/smoke");
-await rm(profile, { recursive: true, force: true });
-await mkdir(profile, { recursive: true });
 await mkdir(results, { recursive: true });
 
-const args = [
-  "exec",
-  "web-ext",
-  "run",
-  "--source-dir",
-  "apps/extension/dist",
-  "--start-url",
-  "http://127.0.0.1:4173/article.html",
-  "--no-reload",
-  "--keep-profile-changes",
-  "--firefox-profile",
-  profile,
-];
-if (process.env.FIREFOX_BINARY) args.push("--firefox", process.env.FIREFOX_BINARY);
-
-const child = spawnPnpm(args, { stdio: ["ignore", "pipe", "pipe"] });
-let output = "";
-for (const stream of [child.stdout, child.stderr]) {
-  stream.on("data", (chunk) => {
-    const text = chunk.toString();
-    output += text;
-    process.stdout.write(text);
-  });
-}
-const exited = new Promise((resolve) =>
-  child.once("exit", (status, signal) => resolve({ status, signal })),
-);
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
-function profileFirefoxPids() {
-  if (process.platform === "win32") return [];
+function positiveInteger(name, fallback, maximum) {
+  const value = Number.parseInt(process.env[name] ?? "", 10);
+  return Number.isInteger(value) && value > 0 && value <= maximum ? value : fallback;
+}
+
+const installTimeout = positiveInteger("FIREFOX_INSTALL_TIMEOUT_MS", 45_000, 120_000);
+const installAttempts = positiveInteger("FIREFOX_INSTALL_ATTEMPTS", 2, 3);
+const installedPattern = /Installed .* as a temporary add-on/iu;
+const maxCapturedOutput = 1_048_576;
+
+function profileFirefoxPids(profile) {
   const listing = execFileSync("ps", ["-axo", "pid=,command="], { encoding: "utf8" });
   return listing
     .split("\n")
@@ -48,53 +27,145 @@ function profileFirefoxPids() {
     .filter((pid) => Number.isInteger(pid) && pid !== process.pid);
 }
 
-async function stopProfileFirefox() {
+function stopWindowsProfileFirefox(profile) {
+  const script = [
+    "$profilePath = $env:OPEN_ASSISTANT_FIREFOX_PROFILE;",
+    "Get-CimInstance Win32_Process |",
+    "Where-Object { $_.Name -like 'firefox*' -and $_.CommandLine -like \"*$profilePath*\" } |",
+    "ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }",
+  ].join(" ");
+  try {
+    execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], {
+      env: { ...process.env, OPEN_ASSISTANT_FIREFOX_PROFILE: profile },
+      stdio: "ignore",
+    });
+  } catch {}
+}
+
+async function removeProfile(profile) {
+  for (let attempt = 1; attempt <= 20; attempt += 1) {
+    try {
+      await rm(profile, { recursive: true, force: true, maxRetries: 1, retryDelay: 250 });
+      return;
+    } catch (error) {
+      if (attempt === 20) throw error;
+      await delay(500);
+    }
+  }
+}
+
+async function stopProcessTree(child, exited, profile) {
   if (process.platform === "win32") {
     try {
-      execFileSync("taskkill.exe", ["/F", "/T", "/IM", "firefox.exe"], { stdio: "ignore" });
+      execFileSync("taskkill.exe", ["/F", "/T", "/PID", String(child.pid)], {
+        stdio: "ignore",
+      });
     } catch {}
+    stopWindowsProfileFirefox(profile);
+    await Promise.race([exited, delay(3_000)]);
+    stopWindowsProfileFirefox(profile);
     await delay(500);
     return;
   }
-  for (const pid of profileFirefoxPids()) {
+
+  child.kill("SIGINT");
+  const stopped = await Promise.race([exited.then(() => true), delay(3_000).then(() => false)]);
+  if (!stopped) child.kill("SIGKILL");
+
+  for (const pid of profileFirefoxPids(profile)) {
     try {
       process.kill(pid, "SIGTERM");
     } catch {}
   }
   await delay(500);
-  for (const pid of profileFirefoxPids()) {
+  for (const pid of profileFirefoxPids(profile)) {
     try {
       process.kill(pid, "SIGKILL");
     } catch {}
   }
 }
 
-let failure;
-try {
-  const launch = await Promise.race([
-    exited.then((result) => ({ type: "exit", result })),
-    delay(20_000).then(() => ({ type: "ready" })),
-  ]);
-  if (launch.type === "exit") {
-    failure = new Error(
-      `Firefox exited before the extension-install check (${launch.result.status ?? launch.result.signal ?? "unknown"}).`,
-    );
-  } else {
-    if (!/Installed .* as a temporary add-on/iu.test(output)) {
-      failure = new Error("web-ext did not confirm temporary extension installation.");
-    }
-    child.kill("SIGINT");
-    const stopped = await Promise.race([exited.then(() => true), delay(3_000).then(() => false)]);
-    if (!stopped) child.kill("SIGKILL");
+async function runAttempt(attempt) {
+  const profile = path.resolve(`test-results/firefox-profile-${attempt}`);
+  await rm(profile, { recursive: true, force: true });
+  await mkdir(profile, { recursive: true });
+  const args = [
+    "exec",
+    "web-ext",
+    "run",
+    "--source-dir",
+    "apps/extension/dist",
+    "--start-url",
+    "http://127.0.0.1:4173/article.html",
+    "--no-reload",
+    "--keep-profile-changes",
+    "--firefox-profile",
+    profile,
+  ];
+  if (process.env.FIREFOX_BINARY) args.push("--firefox", process.env.FIREFOX_BINARY);
+
+  const child = spawnPnpm(args, { stdio: ["ignore", "pipe", "pipe"] });
+  let output = "";
+  let confirmInstalled;
+  const installed = new Promise((resolve) => {
+    confirmInstalled = resolve;
+  });
+  for (const stream of [child.stdout, child.stderr]) {
+    stream.on("data", (chunk) => {
+      const text = chunk.toString();
+      output = `${output}${text}`.slice(-maxCapturedOutput);
+      process.stdout.write(text);
+      if (installedPattern.test(output)) confirmInstalled();
+    });
   }
-} catch (error) {
-  failure = error;
-} finally {
-  await stopProfileFirefox();
-  await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 250 });
+  const exited = new Promise((resolve) =>
+    child.once("exit", (status, signal) => resolve({ status, signal })),
+  );
+
+  let failure;
+  let installTimer;
+  try {
+    const timedOut = new Promise((resolve) => {
+      installTimer = setTimeout(() => resolve({ type: "timeout" }), installTimeout);
+    });
+    const launch = await Promise.race([
+      installed.then(() => ({ type: "installed" })),
+      exited.then((result) => ({ type: "exit", result })),
+      timedOut,
+    ]);
+    if (launch.type === "exit") {
+      failure = new Error(
+        `Firefox exited before the extension-install check (${launch.result.status ?? launch.result.signal ?? "unknown"}).`,
+      );
+    } else if (launch.type === "timeout") {
+      failure = new Error(
+        `web-ext did not confirm temporary extension installation within ${installTimeout}ms.`,
+      );
+    }
+  } catch (error) {
+    failure = error;
+  } finally {
+    clearTimeout(installTimer);
+    await stopProcessTree(child, exited, profile);
+    await removeProfile(profile);
+  }
+
+  return { failure, output };
 }
 
-if (failure) {
-  await writeFile(path.join(results, "firefox.log"), output);
-  throw failure;
+const attemptLogs = [];
+let finalFailure;
+for (let attempt = 1; attempt <= installAttempts; attempt += 1) {
+  const result = await runAttempt(attempt);
+  attemptLogs.push(`=== attempt ${attempt} ===\n${result.output}`);
+  finalFailure = result.failure;
+  if (!finalFailure) break;
+  if (attempt < installAttempts) {
+    console.warn(`Firefox install attempt ${attempt} failed; retrying with a clean profile.`);
+  }
+}
+
+if (finalFailure) {
+  await writeFile(path.join(results, "firefox.log"), `${attemptLogs.join("\n")}\n`);
+  throw finalFailure;
 }

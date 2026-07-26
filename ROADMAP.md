@@ -1,5 +1,7 @@
 # Roadmap
 
+The provider and authentication direction is tracked in [`docs/local-first-plan.md`](docs/local-first-plan.md).
+
 - Milestone 1: repository, runtime permissions, current-page streaming chat, citations, mock mode.
 - Milestone 2: reviewed multi-tab context, selection actions, private isolation, ChatGPT handoff.
 - Milestone 3: structured edit proposals, risk review, range-safe apply and undo.

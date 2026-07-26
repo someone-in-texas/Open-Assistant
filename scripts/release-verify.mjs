@@ -3,6 +3,7 @@ import { execPnpmSync } from "./lib/pnpm.mjs";
 for (const args of [
   ["check:versions"],
   ["check:data-inventory"],
+  ["security:audit"],
   ["format:check"],
   ["lint"],
   ["typecheck"],
