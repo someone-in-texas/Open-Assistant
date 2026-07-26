@@ -5,13 +5,36 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-  issues: write
 jobs:
   adversarial-and-reproducible:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with: { fetch-depth: 0 }
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271
+        with: { version: 11.5.1 }
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with: { node-version: 22.22.0, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm security:audit
+      - run: pnpm test:security
+      - run: pnpm package:extension && cp artifacts/*-unsigned.zip /tmp/first.zip && pnpm package:extension && cmp /tmp/first.zip artifacts/*-unsigned.zip
+      - name: Bridge fixture compatibility
+        run: pnpm test:integration -- --testNamePattern="context boundary"
+  firefox-smoke:
+    name: firefox-smoke (${{ matrix.firefox }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        firefox: [latest, latest-beta, latest-esr]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
       - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271
         with: { version: 11.5.1 }
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -19,13 +42,17 @@ jobs:
       - name: Set up Firefox
         id: setup-firefox
         uses: browser-actions/setup-firefox@0bc507ddf224827e3b1af68e014d5e42ab93e795
-        with: { firefox-version: latest }
+        with: { firefox-version: "${{ matrix.firefox }}" }
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test:security
       - run: xvfb-run --auto-servernum pnpm smoke
         env:
           FIREFOX_BINARY: ${{ steps.setup-firefox.outputs.firefox-path }}
-      - run: pnpm package:extension && cp artifacts/*-unsigned.zip /tmp/first.zip && pnpm package:extension && cmp /tmp/first.zip artifacts/*-unsigned.zip
-      - run: pnpm audit --audit-level high
-      - name: Bridge fixture compatibility
-        run: pnpm test:integration -- --testNamePattern="context boundary"
+          FIREFOX_INSTALL_ATTEMPTS: 2
+          FIREFOX_INSTALL_TIMEOUT_MS: 45000
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: failure()
+        with:
+          name: nightly-firefox-${{ matrix.firefox }}-logs
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7

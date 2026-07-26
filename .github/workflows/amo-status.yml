@@ -10,16 +10,22 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment: production
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
       - name: Verify signed AMO artifact
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          printf '%s' "$RELEASE_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$'
           mkdir signed-release
-          gh release download "${{ inputs.tag }}" --pattern '*.xpi' --dir signed-release
+          gh release download "$RELEASE_TAG" --pattern '*.xpi' --dir signed-release
           signed=(signed-release/*.xpi)
           test "${#signed[@]}" -eq 1
           unzip -t "${signed[0]}"
-          gh release edit "${{ inputs.tag }}" --draft=false
+          gh release edit "$RELEASE_TAG" --draft=false

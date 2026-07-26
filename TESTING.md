@@ -11,7 +11,7 @@
 | `pnpm test:e2e`         | Temporary installed-extension Firefox launch check                     |
 | `pnpm smoke`            | Build, lint, fixtures/mock, integration, and temporary Firefox install |
 
-`pnpm smoke` always launches Firefox, confirms the temporary add-on installation, terminates only that disposable-profile process, and removes the profile. `FIREFOX_BINARY` may identify a Release, Beta, or ESR executable.
+`pnpm smoke` always launches Firefox, confirms the temporary add-on installation, terminates only that disposable-profile process tree, and removes the profile. `FIREFOX_BINARY` may identify a Release, Beta, or ESR executable. The installation check retries once with a clean profile by default; `FIREFOX_INSTALL_ATTEMPTS` (maximum 3) and `FIREFOX_INSTALL_TIMEOUT_MS` (maximum 120000) tune that behavior for slow CI hosts.
 
 ## Fixtures and debugging
 

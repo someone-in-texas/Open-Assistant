@@ -11,24 +11,30 @@ permissions:
 jobs:
   prepare:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
+          persist-credentials: false
       - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271
         with: { version: 11.5.1 }
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with: { node-version: 22.22.0, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - run: pnpm release:prepare --version "${{ inputs.version }}"
+      - run: pnpm release:prepare --version "$RELEASE_VERSION"
       - name: Create release PR
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          branch="release/${{ inputs.version }}"
+          branch="release/$RELEASE_VERSION"
+          gh auth setup-git
           git switch -c "$branch"
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add -A
-          git commit -s -m "chore(release): ${{ inputs.version }}"
+          git commit -s -m "chore(release): $RELEASE_VERSION"
           git push origin "$branch"
-          gh pr create --draft --title "Release ${{ inputs.version }}" --body "Automated release preparation. Review all release gates before merge."
+          gh pr create --draft --title "Release $RELEASE_VERSION" --body "Automated release preparation. Review all release gates before merge."
