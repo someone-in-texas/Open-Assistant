@@ -27,6 +27,33 @@ function profileFirefoxPids(profile) {
     .filter((pid) => Number.isInteger(pid) && pid !== process.pid);
 }
 
+function stopWindowsProfileFirefox(profile) {
+  const script = [
+    "$profilePath = $env:OPEN_ASSISTANT_FIREFOX_PROFILE;",
+    "Get-CimInstance Win32_Process |",
+    "Where-Object { $_.Name -like 'firefox*' -and $_.CommandLine -like \"*$profilePath*\" } |",
+    "ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }",
+  ].join(" ");
+  try {
+    execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], {
+      env: { ...process.env, OPEN_ASSISTANT_FIREFOX_PROFILE: profile },
+      stdio: "ignore",
+    });
+  } catch {}
+}
+
+async function removeProfile(profile) {
+  for (let attempt = 1; attempt <= 20; attempt += 1) {
+    try {
+      await rm(profile, { recursive: true, force: true, maxRetries: 1, retryDelay: 250 });
+      return;
+    } catch (error) {
+      if (attempt === 20) throw error;
+      await delay(500);
+    }
+  }
+}
+
 async function stopProcessTree(child, exited, profile) {
   if (process.platform === "win32") {
     try {
@@ -34,7 +61,10 @@ async function stopProcessTree(child, exited, profile) {
         stdio: "ignore",
       });
     } catch {}
+    stopWindowsProfileFirefox(profile);
     await Promise.race([exited, delay(3_000)]);
+    stopWindowsProfileFirefox(profile);
+    await delay(500);
     return;
   }
 
@@ -117,7 +147,7 @@ async function runAttempt(attempt) {
   } finally {
     clearTimeout(installTimer);
     await stopProcessTree(child, exited, profile);
-    await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 250 });
+    await removeProfile(profile);
   }
 
   return { failure, output };
