@@ -1,6 +1,6 @@
 # Local-first provider plan
 
-Status: planning only. This document does not authorize or implement a new authentication or model path.
+Status: provider-neutral native protocol, local BYOK, and experimental Codex subscription source implementations are complete. Signed installer, independent review, and cross-platform release gates remain open.
 
 ## Direction
 
@@ -12,7 +12,7 @@ The existing native host is the starting point: it already restricts callers to 
 
 ### 1. Local BYOK
 
-Ship the current direct OpenAI API path first.
+The direct OpenAI API adapter is implemented behind the provider-neutral native protocol.
 
 - Complete signed and notarized Windows/macOS packaging before making it a supported release path.
 - Keep the API key in Keychain or Credential Manager and expose only `store`, `delete`, and redacted status operations.
@@ -22,7 +22,7 @@ Ship the current direct OpenAI API path first.
 
 ### 2. ChatGPT subscription through Codex
 
-Prototype this as an optional, clearly labeled integration after BYOK ships. Codex app-server supports deep local product integrations and owns a browser or device-code ChatGPT login flow, including Plus/Pro plan state and Codex rate-limit reporting.
+The optional adapter is implemented and clearly labeled experimental. Codex app-server owns browser-based ChatGPT login, credential refresh, plan state, and rate-limit reporting.
 
 - Have the native companion spawn `codex app-server` over stdio; do not open a TCP listener.
 - Let app-server own and refresh ChatGPT credentials. Do not extract, copy, or expose its tokens to the extension.
@@ -53,14 +53,14 @@ Add a provider adapter for a loopback-only, OpenAI-compatible Responses endpoint
 - Private-window data remains memory-only and is never reused across profiles or providers.
 - Provider changes invalidate active context and conversations unless the user explicitly starts a new request.
 
-## Delivery sequence
+## Delivery status
 
-1. Specify a provider-neutral native protocol and add threat-model cases for credential storage, process spawning, cancellation, and local endpoint attacks.
-2. Finish signed native-host installers, updater/removal behavior, and cross-platform release verification.
-3. Move direct API responses behind normalized streaming events and ship local BYOK as the first supported no-relay mode.
-4. Build a small Codex app-server compatibility spike with generated schemas, managed ChatGPT login, rate-limit display, and all execution tools disabled.
-5. Add the loopback local-model adapter and a conformance suite shared by every provider.
-6. Decide whether the hosted relay remains an opt-in convenience deployment or a separately maintained distribution.
+1. Complete: provider-neutral strict requests, normalized streams, cancellation, bounded concurrency, and threat-model coverage.
+2. Open release gate: signed native-host installers, updater/removal behavior, and cross-platform signed verification.
+3. Complete in source: fixed-endpoint BYOK streaming with credential-manager storage, explicit model allowlist, and stable errors.
+4. Complete as experimental source: compatible Codex app-server check, managed ChatGPT login, sanitized plan/rate-limit status, dedicated profile/workspace, and execution tools disabled.
+5. Not started: loopback local-model adapter and shared recorded-stream conformance suite.
+6. Open product decision: hosted relay distribution.
 
 ## Graduation criteria
 

@@ -3,6 +3,9 @@ import {
   agentActionSchema,
   contextBundleSchema,
   editProposalSchema,
+  nativeMessageSchema,
+  nativeRequestSchema,
+  nativeStatusSchema,
   parseRuntimeRequest,
   streamEventSchema,
 } from "@open-assistant/protocol";
@@ -84,6 +87,80 @@ describe("protocol schemas", () => {
     expect(
       streamEventSchema.safeParse({ type: "error", code: "secret", message: "x", retryable: false })
         .success,
+    ).toBe(false);
+  });
+
+  it("strictly validates native provider requests and status", () => {
+    const requestId = crypto.randomUUID();
+    expect(
+      nativeRequestSchema.parse({
+        type: "request",
+        requestId,
+        provider: "byok",
+        model: "gpt-5.6-luna",
+        payload: {
+          sessionId: crypto.randomUUID(),
+          prompt: "Summarize",
+          context: {
+            schemaVersion: 1,
+            conversationId: crypto.randomUUID(),
+            createdAt: new Date().toISOString(),
+            userIntent: "Summarize",
+            sources: [source],
+          },
+          mode: "chat",
+        },
+      }).provider,
+    ).toBe("byok");
+    expect(
+      nativeRequestSchema.safeParse({
+        type: "store_key",
+        requestId,
+        apiKey: "sk-test-example-key-value",
+        persistInExtension: true,
+      }).success,
+    ).toBe(false);
+
+    const status = {
+      version: "0.1.0",
+      byok: { keyStored: true },
+      codex: {
+        available: true,
+        version: "codex-cli 0.145.0",
+        authenticated: true,
+        authMode: "chatgpt" as const,
+        email: "person@example.com",
+        planType: "plus" as const,
+        primaryRateLimit: { usedPercent: 10 },
+        secondaryRateLimit: null,
+      },
+    };
+    expect(nativeStatusSchema.parse(status).codex.authMode).toBe("chatgpt");
+    expect(nativeStatusSchema.safeParse({ ...status, accessToken: "secret" }).success).toBe(false);
+  });
+
+  it("rejects malformed native messages", () => {
+    const requestId = crypto.randomUUID();
+    const message = nativeMessageSchema.parse({
+      kind: "stream",
+      requestId,
+      event: { type: "delta", text: "hello" },
+    });
+    expect(message.kind).toBe("stream");
+    expect(
+      nativeMessageSchema.safeParse({
+        kind: "codex_login",
+        requestId,
+        state: "open",
+        authUrl: "javascript:alert(1)",
+      }).success,
+    ).toBe(false);
+    expect(
+      nativeMessageSchema.safeParse({
+        kind: "stream",
+        requestId,
+        event: { type: "tool_request", command: "rm" },
+      }).success,
     ).toBe(false);
   });
 });

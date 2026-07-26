@@ -10,7 +10,13 @@ import {
 } from "@open-assistant/protocol";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { getSettings, saveSettings } from "../shared/config.js";
+import {
+  connectionLabel,
+  getSettings,
+  providerConnectionChanged,
+  saveSettings,
+  type UserSettings,
+} from "../shared/config.js";
 import { newConversation, type ChatMessage, type ConversationState } from "../shared/state.js";
 import { MarkdownView } from "./markdown.js";
 
@@ -195,6 +201,7 @@ function App() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [handoffText, setHandoffText] = useState<string>();
+  const [provider, setProvider] = useState("Loading provider…");
   const port = useRef<browser.runtime.Port | undefined>(undefined);
 
   useEffect(() => {
@@ -211,6 +218,24 @@ function App() {
       }
     };
     chatPort.onMessage.addListener(listener);
+    void getSettings().then((settings) => setProvider(connectionLabel(settings)));
+    const settingsListener = (
+      changes: Record<string, browser.storage.StorageChange>,
+      areaName: string,
+    ) => {
+      if (areaName !== "local" || !changes.settings) return;
+      const before = changes.settings.oldValue as Partial<UserSettings> | undefined;
+      const after = changes.settings.newValue as Partial<UserSettings> | undefined;
+      if (!providerConnectionChanged(before, after)) return;
+      void getSettings().then((settings) => {
+        setProvider(connectionLabel(settings));
+        setConversation((current) => newConversation(current.private));
+        setStreaming(false);
+        setActiveRequest(undefined);
+        setStatus("Provider changed. Start a new request with newly reviewed context.");
+      });
+    };
+    browser.storage.onChanged.addListener(settingsListener);
     void browser.tabs.query({ active: true, currentWindow: true }).then(async ([activeTab]) => {
       const isPrivate = Boolean(activeTab?.incognito);
       if (isPrivate) {
@@ -259,6 +284,7 @@ function App() {
     return () => {
       chatPort.onMessage.removeListener(listener);
       chatPort.disconnect();
+      browser.storage.onChanged.removeListener(settingsListener);
     };
   }, []);
 
@@ -423,7 +449,10 @@ function App() {
   return (
     <main className="app">
       <header className="app-header">
-        <h1>Open Assistant</h1>
+        <div>
+          <h1>Open Assistant</h1>
+          <div className="provider-indicator">{provider}</div>
+        </div>
         <button
           type="button"
           onClick={() => {

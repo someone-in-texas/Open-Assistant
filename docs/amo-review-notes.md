@@ -27,6 +27,6 @@ Page excerpts, titles, URLs, prompt, and source locators are transmitted only af
 
 ## Native host and bridge
 
-Native source is optional and not included in the XPI. It exists only for BYOK and uses a fixed extension ID/keychain/API endpoint; install details are in `docs/native-host.md`. The ChatGPT bridge asks for exact host access on invocation, writes only the reviewed bundle into a known visible composer, never presses Send, never reads chats/cookies/storage/network, and falls back to copy/focus.
+Native source is optional and not included in the XPI. It supports private BYOK with a fixed extension ID/credential-manager/API endpoint and an experimental Codex subscription adapter over locked-down child-process stdio. The native binary and Codex CLI must be installed separately; install, credential, and process restrictions are in `docs/native-host.md`. The extension receives no API key or Codex token. The ChatGPT bridge asks for exact host access on invocation, writes only the reviewed bundle into a known visible composer, never presses Send, never reads chats/cookies/storage/network, and falls back to copy/focus.
 
 Known limitations: privileged/AMO/restricted PDF/cross-origin frames and complex editors fail closed. File access requires Firefox user enablement. Security reports use the repository's private vulnerability-reporting form; ordinary support uses the public issue tracker without private data.

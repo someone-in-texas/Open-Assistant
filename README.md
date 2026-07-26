@@ -6,9 +6,9 @@ Open Assistant for Firefox is an independent, open-source Firefox desktop extens
 
 ## Status
 
-Version 0.1.0 implements the reviewable Milestone 1–3 foundation: strict shared protocols, current-page and multi-tab extraction, selection actions, streaming chat, citations, safe textarea/input/basic-contenteditable editing with undo, a copy-safe ChatGPT bridge, a deterministic mock relay, a production relay reference, and a local agent policy package. Interactive agent execution is compiled off until the independent safety gate in [docs/agent-safety.md](docs/agent-safety.md) is complete.
+Version 0.1.0 implements the reviewable Milestone 1–3 foundation: strict shared protocols, current-page and multi-tab extraction, selection actions, streaming chat, citations, safe textarea/input/basic-contenteditable editing with undo, a copy-safe ChatGPT bridge, a deterministic mock relay, a production relay reference, private local BYOK and experimental Codex subscription provider adapters, and a local agent policy package. Interactive agent execution is compiled off until the independent safety gate in [docs/agent-safety.md](docs/agent-safety.md) is complete.
 
-The repository is release-capable, but Mozilla signing, native binary signing/notarization, external security review, and cross-platform signed-beta smoke evidence are maintainer-controlled release gates rather than artifacts that can be created from a clean local checkout.
+The extension repository is release-capable. The native provider source is implemented and testable, but Mozilla signing, native binary signing/notarization, external security review, and cross-platform signed-beta smoke evidence remain maintainer-controlled gates. Local native builds are development artifacts, not a signed public release.
 
 ## Privacy and security summary
 
@@ -20,7 +20,8 @@ The repository is release-capable, but Mozilla signing, native binary signing/no
 - Password, payment, one-time-code, hidden, and suspiciously labeled controls are excluded.
 - Conversation messages are local by default; extracted context is memory/session only.
 - Telemetry and agent interaction are off by default.
-- API credentials remain in the relay secret store or optional OS keychain companion.
+- API credentials remain in the relay secret store or optional OS credential manager.
+- Codex subscription credentials remain in a dedicated Codex profile and never enter extension JavaScript.
 
 See [PRIVACY.md](PRIVACY.md) and [THREAT_MODEL.md](THREAT_MODEL.md).
 
@@ -34,7 +35,7 @@ Firefox for Android and arbitrary desktop control are out of scope for version 1
 
 ## Development quick start
 
-Prerequisites: Node.js 22.22.x, pnpm 11.5.1, Firefox 140+, `zip`, and Rust stable only when building the optional native host.
+Prerequisites: Node.js 22.22.x, pnpm 11.5.1, Firefox 140+, `zip`, and the `rust-toolchain.toml` toolchain only when building the optional native host.
 
 ```bash
 pnpm install --frozen-lockfile
@@ -61,7 +62,7 @@ pnpm exec web-ext run --source-dir apps/extension/dist --start-url http://127.0.
 
 ## Architecture
 
-The Firefox sidebar and options UI communicate with a non-persistent MV3 background event page. The background owns permissions, context session state, relay calls, and cancellation. Content scripts expose only bounded extraction and editor operations. Shared Zod schemas validate extension/relay boundaries. The hosted reference relay keeps model instructions and OpenAI credentials server-side. See [docs/architecture.md](docs/architecture.md).
+The Firefox sidebar and options UI communicate with a non-persistent MV3 background event page. The background owns permissions, context session state, provider calls, and cancellation. Content scripts expose only bounded extraction and editor operations. Shared Zod schemas validate extension/relay/native boundaries. The hosted reference relay keeps model instructions and OpenAI credentials server-side. The optional native companion either calls the fixed OpenAI Responses endpoint with an OS-stored project key or delegates ChatGPT sign-in and model turns to a locked-down Codex app-server over stdio. See [docs/architecture.md](docs/architecture.md).
 
 ## Documentation
 

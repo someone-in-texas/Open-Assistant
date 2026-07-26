@@ -3,6 +3,10 @@ import { z } from "zod";
 const boundedText = (maximum: number) => z.string().max(maximum);
 const isoDate = z.iso.datetime({ offset: true });
 const webUrl = z.url().refine((value) => ["http:", "https:"].includes(new URL(value).protocol));
+const secureWebUrl = z.url().refine((value) => {
+  const url = new URL(value);
+  return url.protocol === "https:" && !url.username && !url.password;
+});
 
 export const sourceChunkSchema = z
   .object({
@@ -196,6 +200,53 @@ export const streamEventSchema = z.discriminatedUnion("type", [
 ]);
 export type StreamEvent = z.infer<typeof streamEventSchema>;
 
+export const codexPlanTypeSchema = z.enum([
+  "free",
+  "go",
+  "plus",
+  "pro",
+  "prolite",
+  "team",
+  "self_serve_business_usage_based",
+  "business",
+  "enterprise_cbp_usage_based",
+  "enterprise",
+  "edu",
+  "unknown",
+]);
+
+export const rateLimitWindowSchema = z
+  .object({
+    usedPercent: z.number().int().min(0).max(100),
+    resetsAt: z.number().int().nonnegative().nullable().optional(),
+    windowDurationMins: z.number().int().positive().nullable().optional(),
+  })
+  .strict();
+
+export const nativeStatusSchema = z
+  .object({
+    version: boundedText(64),
+    byok: z
+      .object({
+        keyStored: z.boolean(),
+      })
+      .strict(),
+    codex: z
+      .object({
+        available: z.boolean(),
+        version: boundedText(64).nullable(),
+        authenticated: z.boolean(),
+        authMode: z.enum(["chatgpt", "apiKey", "none", "unknown"]),
+        email: boundedText(320).nullable(),
+        planType: codexPlanTypeSchema.nullable(),
+        primaryRateLimit: rateLimitWindowSchema.nullable(),
+        secondaryRateLimit: rateLimitWindowSchema.nullable(),
+      })
+      .strict(),
+  })
+  .strict();
+export type NativeStatus = z.infer<typeof nativeStatusSchema>;
+
 export const runtimeRequestSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("GET_ACTIVE_CONTEXT"), requestId: z.uuid() }).strict(),
   z
@@ -216,6 +267,17 @@ export const runtimeRequestSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("SIGN_IN"), requestId: z.uuid() }).strict(),
   z.object({ type: z.literal("SIGN_OUT"), requestId: z.uuid() }).strict(),
   z.object({ type: z.literal("AUTH_STATUS"), requestId: z.uuid() }).strict(),
+  z.object({ type: z.literal("NATIVE_STATUS"), requestId: z.uuid() }).strict(),
+  z
+    .object({
+      type: z.literal("NATIVE_STORE_KEY"),
+      requestId: z.uuid(),
+      apiKey: z.string().min(20).max(512).startsWith("sk-"),
+    })
+    .strict(),
+  z.object({ type: z.literal("NATIVE_DELETE_KEY"), requestId: z.uuid() }).strict(),
+  z.object({ type: z.literal("CODEX_LOGIN"), requestId: z.uuid() }).strict(),
+  z.object({ type: z.literal("CODEX_LOGOUT"), requestId: z.uuid() }).strict(),
   z.object({ type: z.literal("LIST_TABS"), requestId: z.uuid() }).strict(),
   z
     .object({
@@ -256,14 +318,63 @@ export type ContentCommand = z.infer<typeof contentCommandSchema>;
 export const nativeRequestSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("status"), requestId: z.uuid() }).strict(),
   z
-    .object({ type: z.literal("store_key"), requestId: z.uuid(), apiKey: boundedText(512) })
+    .object({
+      type: z.literal("store_key"),
+      requestId: z.uuid(),
+      apiKey: z.string().min(20).max(512).startsWith("sk-"),
+    })
     .strict(),
   z.object({ type: z.literal("delete_key"), requestId: z.uuid() }).strict(),
+  z.object({ type: z.literal("codex_login"), requestId: z.uuid() }).strict(),
+  z.object({ type: z.literal("codex_logout"), requestId: z.uuid() }).strict(),
   z
-    .object({ type: z.literal("request"), requestId: z.uuid(), payload: responseRequestSchema })
+    .object({
+      type: z.literal("request"),
+      requestId: z.uuid(),
+      provider: z.enum(["byok", "codex"]),
+      model: boundedText(128).optional(),
+      payload: responseRequestSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("cancel"),
+      requestId: z.uuid(),
+      targetRequestId: z.uuid(),
+    })
     .strict(),
 ]);
 export type NativeRequest = z.infer<typeof nativeRequestSchema>;
+
+export const nativeMessageSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      kind: z.literal("response"),
+      requestId: z.uuid().nullable(),
+      ok: z.boolean(),
+      data: z.unknown().optional(),
+      error: boundedText(128).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("stream"),
+      requestId: z.uuid(),
+      event: streamEventSchema,
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("codex_login"),
+      requestId: z.uuid(),
+      state: z.enum(["open", "complete"]),
+      authUrl: secureWebUrl.optional(),
+      success: z.boolean().optional(),
+      error: boundedText(256).optional(),
+    })
+    .strict(),
+]);
+export type NativeMessage = z.infer<typeof nativeMessageSchema>;
 
 export function parseRuntimeRequest(input: unknown): RuntimeRequest {
   return runtimeRequestSchema.parse(input);
