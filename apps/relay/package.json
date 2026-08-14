@@ -14,7 +14,7 @@
     "@fastify/rate-limit": "11.1.0",
     "@open-assistant/prompt-security": "workspace:*",
     "@open-assistant/protocol": "workspace:*",
-    "fastify": "5.10.0",
+    "fastify": "5.11.3",
     "jose": "6.2.3",
     "openai": "6.48.0",
     "zod": "4.4.3"
