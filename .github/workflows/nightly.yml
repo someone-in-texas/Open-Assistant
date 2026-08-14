@@ -1,7 +1,7 @@
 name: Nightly
 on:
-  schedule:
-    - cron: "23 7 * * *"
+  # Scheduled runs are paused until production release preparation resumes.
+  # Re-enable by restoring: schedule: [{ cron: "23 7 * * *" }]
   workflow_dispatch:
 permissions:
   contents: read
