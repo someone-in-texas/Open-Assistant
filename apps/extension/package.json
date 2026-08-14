@@ -13,7 +13,7 @@
     "@open-assistant/extraction": "workspace:*",
     "@open-assistant/prompt-security": "workspace:*",
     "@open-assistant/protocol": "workspace:*",
-    "react": "19.2.7",
+    "react": "19.2.8",
     "react-dom": "19.2.7",
     "zod": "4.4.3"
   }
