@@ -16,7 +16,7 @@
     "@open-assistant/protocol": "workspace:*",
     "fastify": "5.10.0",
     "jose": "6.2.3",
-    "openai": "6.48.0",
+    "openai": "7.4.0",
     "zod": "4.4.3"
   }
 }
