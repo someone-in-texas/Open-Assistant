@@ -1,14 +1,14 @@
 name: Nightly
 on:
-  schedule:
-    - cron: "23 7 * * *"
+  # Scheduled runs are paused until production release preparation resumes.
+  # Re-enable by restoring: schedule: [{ cron: "23 7 * * *" }]
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   adversarial-and-reproducible:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -17,9 +17,18 @@ jobs:
         with: { version: 11.5.1 }
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with: { node-version: 22.22.0, cache: pnpm }
+      - uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4
+        with:
+          toolchain: 1.97.1
+          components: rustfmt, clippy
       - run: pnpm install --frozen-lockfile
       - run: pnpm security:audit
       - run: pnpm test:security
+      - run: cargo fmt --check --manifest-path apps/native-host/Cargo.toml
+      - run: cargo clippy --locked --all-targets --manifest-path apps/native-host/Cargo.toml -- -D warnings
+      - run: cargo test --locked --manifest-path apps/native-host/Cargo.toml
+      - run: cargo build --locked --release --manifest-path apps/native-host/Cargo.toml
+      - run: pnpm smoke:native
       - run: pnpm package:extension && cp artifacts/*-unsigned.zip /tmp/first.zip && pnpm package:extension && cmp /tmp/first.zip artifacts/*-unsigned.zip
       - name: Bridge fixture compatibility
         run: pnpm test:integration -- --testNamePattern="context boundary"

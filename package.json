@@ -32,6 +32,7 @@
     "test:security": "vitest run tests/security",
     "security:audit": "pnpm audit --audit-level high && pnpm audit signatures",
     "smoke": "node scripts/smoke.mjs",
+    "smoke:native": "node scripts/native-host-smoke.mjs",
     "package:extension": "node scripts/package-extension.mjs",
     "package:source": "node scripts/package-source.mjs",
     "release:prepare": "node scripts/release-prepare.mjs",

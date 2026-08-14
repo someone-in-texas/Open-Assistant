@@ -6,9 +6,11 @@ Open Assistant for Firefox has no advertising, sells no data, includes no third-
 
 ## What is processed
 
-When you explicitly add page or selection context and submit a prompt, the extension sends that prompt, the reviewed excerpts, page title and URL, source locators, and short-lived session identifiers to your configured relay. Hosted mode may forward the request to the OpenAI API. Self-hosted mode sends it to the operator you chose. Native BYOK mode sends it through the local companion to OpenAI. Do not include secrets or sensitive personal data.
+When you explicitly add page or selection context and submit a prompt, the extension sends that prompt, the reviewed excerpts, page title and URL, source locators, and short-lived session identifiers to your configured provider. Hosted mode may forward the request to the OpenAI API. Self-hosted mode sends it to the operator you chose. Native BYOK mode sends it through the local companion to OpenAI. Experimental Codex mode sends it through the companion and Codex app-server under the OpenAI account you chose. Do not include secrets or sensitive personal data.
 
 Authentication identifiers and coarse usage totals may be processed by a hosted relay for access control, abuse prevention, quotas, and billing. Application logs exclude raw prompts, page content, selections, screenshots, and model responses by default. Security metadata defaults to 30 days. Feedback is retained only when a feedback UI shows exactly what will be included.
+
+In BYOK mode, the API key is stored by Keychain or Credential Manager and the extension sees only a yes/no status. In Codex mode, Codex stores and refreshes credentials in a dedicated Open Assistant profile; the extension sees only authentication state, account email, plan type, Codex version, and coarse rate-limit usage. Neither mode places credentials in extension storage or logs. OpenAI's applicable account and service terms govern data processed by OpenAI.
 
 ## Local storage and controls
 

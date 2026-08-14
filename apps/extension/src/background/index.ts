@@ -4,10 +4,19 @@ import {
   parseRuntimeRequest,
   type ContextSource,
   type RuntimeRequest,
+  type StreamEvent,
 } from "@open-assistant/protocol";
 import { streamResponse } from "./relay-client.js";
 import { authStatus, signIn, signOut } from "./auth.js";
-import { getSettings } from "../shared/config.js";
+import { getSettings, providerConnectionChanged, type UserSettings } from "../shared/config.js";
+import {
+  deleteNativeKey,
+  getNativeStatus,
+  loginWithCodex,
+  logoutCodex,
+  storeNativeKey,
+  streamNativeResponse,
+} from "./native-client.js";
 
 const activeStreams = new Map<string, AbortController>();
 const sources = new Map<number, ContextSource>();
@@ -122,6 +131,20 @@ async function handleRequest(message: RuntimeRequest): Promise<RuntimeReply> {
       return { ok: true };
     case "AUTH_STATUS":
       return { ok: true, data: authStatus() };
+    case "NATIVE_STATUS":
+      return { ok: true, data: await getNativeStatus() };
+    case "NATIVE_STORE_KEY":
+      await storeNativeKey(message.apiKey);
+      return { ok: true };
+    case "NATIVE_DELETE_KEY":
+      await deleteNativeKey();
+      return { ok: true };
+    case "CODEX_LOGIN":
+      await loginWithCodex();
+      return { ok: true, data: await getNativeStatus() };
+    case "CODEX_LOGOUT":
+      await logoutCodex();
+      return { ok: true, data: await getNativeStatus() };
     case "APPLY_EDIT": {
       const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
       if (tab?.id === undefined) throw new Error("No active tab is available.");
@@ -220,9 +243,30 @@ browser.runtime.onConnect.addListener((port) => {
     if (parsed.type !== "SEND_CHAT") return;
     const controller = new AbortController();
     activeStreams.set(parsed.requestId, controller);
-    void streamResponse(parsed.request, controller.signal, (event) =>
-      port.postMessage({ requestId: parsed.requestId, event }),
-    )
+    void getSettings()
+      .then((settings) => {
+        const onEvent = (event: StreamEvent) =>
+          port.postMessage({ requestId: parsed.requestId, event });
+        if (settings.connectionMode === "native") {
+          return streamNativeResponse(
+            "byok",
+            settings.nativeModel,
+            parsed.request,
+            controller.signal,
+            onEvent,
+          );
+        }
+        if (settings.connectionMode === "codex") {
+          return streamNativeResponse(
+            "codex",
+            settings.codexModel,
+            parsed.request,
+            controller.signal,
+            onEvent,
+          );
+        }
+        return streamResponse(parsed.request, controller.signal, onEvent);
+      })
       .catch((error: unknown) => {
         if (!controller.signal.aborted) {
           port.postMessage({
@@ -308,4 +352,15 @@ browser.permissions.onRemoved.addListener((permissions) => {
   for (const [tabId, source] of sources) {
     if (permissions.origins?.includes(originPattern(source.url))) sources.delete(tabId);
   }
+});
+
+browser.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== "local" || !changes.settings) return;
+  const before = changes.settings.oldValue as Partial<UserSettings> | undefined;
+  const after = changes.settings.newValue as Partial<UserSettings> | undefined;
+  if (!providerConnectionChanged(before, after)) return;
+  sources.clear();
+  for (const controller of activeStreams.values()) controller.abort();
+  activeStreams.clear();
+  void browser.storage.local.remove("currentConversation");
 });
